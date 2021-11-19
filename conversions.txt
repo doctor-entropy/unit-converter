@@ -1,0 +1,27 @@
+Fundamental units
+
+    # Mass
+    1 Kg  -> 1000 g
+    1 g   -> 1000 mg
+
+    # Length
+    1 Km  -> 1000 m
+    1 m   -> 100 cm
+    1 cm  -> 10 mm
+
+    # Time
+    1 s   -> 1000 ms
+    1 min -> 60 s
+    1 hr  -> 60 min
+
+Derived units :: Physics (-p)
+
+    # Force
+    1 N -> 1 Kg.m/s^2
+
+Derived units :: Chemistry (-c)
+
+
+
+Standards :: SI -> Kg, m, s
+Standards :: CGS -> g, cm, s
