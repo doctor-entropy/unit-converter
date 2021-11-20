@@ -50,6 +50,11 @@ flag = do
 -- unit   = string
 -- int    = ... | -1 | 0 | 2 | ...
 
+-- TODO
+-- 1. Allow for free spacing around expressions
+-- 2. Exponent should be Int instead of Integer (Negative numbers)
+-- 3. Allow for title casing units
+
 data Expr = Mult Expr Expr
           | Div  Expr Expr
           | Expo Expr Integer
@@ -65,9 +70,6 @@ expr = do f <- factor
             <|> do char '/'
                    e <- expr
                    return (Div f e)
-            -- <|> do char '^'
-            --        n <- integer
-            --        return (Expo f n)
             <|> return f
 
 factor :: Parser Expr
