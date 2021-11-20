@@ -11,9 +11,9 @@ type Parser = Parsec Void String
 
 sc :: Parser ()
 sc = L.space
-    space1                         -- (2)
-    (L.skipLineComment "//")       -- (3)
-    (L.skipBlockComment "/*" "*/") -- (4)
+    space1
+    (L.skipLineComment "//")
+    (L.skipBlockComment "/*" "*/")
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
@@ -45,7 +45,8 @@ flag = do
 
 -- Expression of units
 -- expr   = factor (. expr | / expr | ^ int | e)
--- factor = ( expr ) | unit
+-- factor = term ( ^ int | e)
+-- term   = ( expr ) | unit
 -- unit   = string
 -- int    = ... | -1 | 0 | 2 | ...
 
@@ -64,15 +65,22 @@ expr = do f <- factor
             <|> do char '/'
                    e <- expr
                    return (Div f e)
-            <|> do char '^'
-                   n <- integer
-                   return (Expo f n)
+            -- <|> do char '^'
+            --        n <- integer
+            --        return (Expo f n)
             <|> return f
 
 factor :: Parser Expr
-factor = do char '('
-            e <- expr
-            char ')'
-            return e
-            <|> do str <- some lowerCaseAlpha
-                   return (Unit str)
+factor = do t <- term
+            do char '^'
+               n <- integer
+               return (Expo t n)
+              <|> return t
+
+term :: Parser Expr
+term = do char '('
+          e <- expr
+          char ')'
+          return e
+          <|> do str <- some lowerCaseAlpha
+                 return (Unit str)
