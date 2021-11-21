@@ -2,39 +2,42 @@
 
 module Parsers where
 
+import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Void
 
 type Parser = Parsec Void String
 
-sc :: Parser ()
-sc = L.space
-    space1
-    (L.skipLineComment "//")
-    (L.skipBlockComment "/*" "*/")
+freespace :: Parser a -> Parser a
+freespace p = do space
+                 v <- p
+                 space
+                 return v
 
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme sc
+symbol :: String -> Parser String
+symbol xs = freespace $ string xs
 
-integer :: Parser Integer
-integer = lexeme L.decimal
+wholeNum :: Parser Int
+wholeNum = L.decimal
 
-lowerCaseAlpha :: Parser Char
-lowerCaseAlpha = do oneOf ['a'..'z']
+int :: Parser Int
+int = L.signed space wholeNum
+
+integer :: Parser Int
+integer = freespace int
 
 longflag :: Parser String
 longflag = do
     string "--"
-    flag <- some lowerCaseAlpha
+    flag <- some lowerChar
     eof
     return flag
 
 shortflag :: Parser String
 shortflag = do
     char '-'
-    flag <- lowerCaseAlpha
+    flag <- lowerChar
     eof
     return [flag]
 
@@ -50,39 +53,34 @@ flag = do
 -- unit   = string
 -- int    = ... | -1 | 0 | 2 | ...
 
--- TODO
--- 1. Allow for free spacing around expressions
--- 2. Exponent should be Int instead of Integer (Negative numbers)
--- 3. Allow for title casing units
-
 data Expr = Mult Expr Expr
           | Div  Expr Expr
-          | Expo Expr Integer
+          | Expo Expr Int
           | Unit String
           deriving Show
 
 
 expr :: Parser Expr
 expr = do f <- factor
-          do char '.'
+          do symbol "."
              e <- expr
              return (Mult f e)
-            <|> do char '/'
+            <|> do symbol "/"
                    e <- expr
                    return (Div f e)
             <|> return f
 
 factor :: Parser Expr
 factor = do t <- term
-            do char '^'
+            do symbol "^"
                n <- integer
                return (Expo t n)
               <|> return t
 
 term :: Parser Expr
-term = do char '('
+term = do symbol "("
           e <- expr
-          char ')'
+          symbol ")"
           return e
-          <|> do str <- some lowerCaseAlpha
-                 return (Unit str)
+          <|> do unit <- freespace $ some letterChar
+                 return (Unit unit)
