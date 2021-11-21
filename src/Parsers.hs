@@ -27,6 +27,10 @@ int = L.signed space wholeNum
 integer :: Parser Int
 integer = freespace int
 
+-- -------------------------
+-- Command line flag parsers
+-- -------------------------
+
 longflag :: Parser String
 longflag = do
     string "--"
@@ -46,12 +50,19 @@ flag = do
         try (longflag)
     <|> shortflag
 
--- Expression of units
--- expr   = factor (. expr | / expr | ^ int | e)
--- factor = term ( ^ int | e)
--- term   = ( expr ) | unit
--- unit   = string
--- int    = ... | -1 | 0 | 2 | ...
+-- ------------------
+-- Expression parsers
+-- ------------------
+
+{-
+Expression of units
+expr   = factor (. expr | / expr | ^ int | e)
+factor = term ( ^ int | e)
+term   = ( expr ) | unit
+unit   = string
+int    = ... | -1 | 0 | 2 | ...
+-}
+
 
 data Expr = Mult Expr Expr
           | Div  Expr Expr
@@ -84,3 +95,9 @@ term = do symbol "("
           return e
           <|> do unit <- freespace $ some letterChar
                  return (Unit unit)
+
+query :: Parser (Expr, Expr)
+query = do e1 <- expr
+           symbol "->"
+           e2 <- expr
+           return (e1, e2)
