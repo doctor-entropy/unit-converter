@@ -35,6 +35,12 @@ findGraph u (Node e1 n e2)
           results = map (First . findGraph u) $ graphs
           graphs = map (\e -> dest e) (e1 ++ e2)
 
+idEdgeF :: Graph Unit -> Edge Unit
+idEdgeF idGr = edge idGr unitConv
+
+idEdgeR :: Graph Unit -> Edge Unit
+idEdgeR idGr = edge idGr (inverse unitConv)
+
 idEdge :: Graph Unit -> Edge Unit
 idEdge idGr = edge idGr unitConv
 
@@ -44,6 +50,30 @@ edge gr s = Edge {dest=gr, conv=s}
 -- Identity graph with self reference
 idGraph :: Unit -> Graph Unit
 idGraph u = newGraph (u, u, unitConv)
+
+mkIdGraph :: Unit -> Graph Unit
+mkIdGraph u = 
+    Node [fromEdg] u [toEdg]
+    where idGr    = mkIdGraph u
+          fromEdg = idEdgeR idGr
+          toEdg   = idEdgeF idGr
+
+connectGraphs :: Graph Unit -> Conversion -> Graph Unit -> Graph Unit
+connectGraphs gr1 conv gr2 = 
+    ( Node (fromEdg:f1) u1 (toEdg:t1) )
+    where (Node f1 u1 t1) = gr1
+          (Node f2 u2 t2) = gr2
+          iconv = inverse conv
+          fromGr = connectGraphs gr2 iconv gr1
+          fromEdg = edge fromGr conv
+          toEdg = edge gr2 conv
+
+-- connectGraphs :: Graph Unit -> Conversion -> Graph Unit -> Graph Unit
+-- connectGraphs gr1@(Node f1 u1 t1) conv gr2@(Node f2 u2 t2) = 
+--         (Node (f1 ++ [e2] u1 (t1 ++ [e1]))
+
+--     where e1 = edge gr2 conv
+--           e2 = edge (connectGraphs gr2 (inverse conv) gr1) conv
 
 newGraph :: Relation -> Graph Unit
 newGraph (from, to, conv) =
@@ -69,8 +99,17 @@ mkGraph (e:es) gr = case findGraph from gr of
                                      in mkGraph es gr''
                     where (from, to, conv) = e
 
-move :: Graph Unit -> Graph Unit
-move (Node _ u (n:ns)) = dest n
+moveF :: Graph Unit -> Graph Unit
+moveF (Node _ u (n:ns)) = dest n
+
+moveR :: Graph Unit -> Graph Unit
+moveR (Node (n:ns) u _) = dest n
 
 getNode :: Graph Unit -> Unit
 getNode (Node _ n _) = n
+
+getEdgesF :: Graph Unit -> [Unit]
+getEdgesF (Node fs n ts) = map (getNode . dest) ts
+
+getEdgesR :: Graph Unit -> [Unit]
+getEdgesR (Node fs n ts) = map (getNode . dest) fs
