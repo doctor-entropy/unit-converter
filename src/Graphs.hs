@@ -24,6 +24,8 @@ inverse (Div, s)  = (Mult, s)
 unitConv :: Conversion
 unitConv = (Mult, 1)
 
+-- Current logic does not terminate
+-- TODO: Make it terminate
 findGraph :: Unit -> Graph Unit -> Maybe (Graph Unit)
 findGraph u Empty = Nothing
 findGraph u (Node e1 n e2)
