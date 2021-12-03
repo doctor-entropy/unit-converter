@@ -32,8 +32,9 @@ findGraph u (Node e1 n e2)
     | u == n = Just (Node e1 n e2)
     | otherwise = result
     where result = getFirst $ mconcat results
-          results = map (First . findGraph u) $ graphs
-          graphs = map (\e -> dest e) (e1 ++ e2)
+          results = map (First . findGraph u) $ nonIdGrs
+          nonIdGrs = filter ((/=n). getNode) graphs
+          graphs  = map (\e -> dest e) (e1 ++ e2)
 
 idEdgeF :: Graph Unit -> Edge Unit
 idEdgeF idGr = edge idGr unitConv
@@ -58,15 +59,29 @@ mkIdGraph u =
           fromEdg = idEdgeR idGr
           toEdg   = idEdgeF idGr
 
-connectGraphs :: Graph Unit -> Conversion -> Graph Unit -> Graph Unit
-connectGraphs gr1 conv gr2 = 
-    ( Node (fromEdg:f1) u1 (toEdg:t1) )
-    where (Node f1 u1 t1) = gr1
-          (Node f2 u2 t2) = gr2
-          iconv = inverse conv
-          fromGr = connectGraphs gr2 iconv gr1
-          fromEdg = edge fromGr conv
-          toEdg = edge gr2 conv
+connectGraphs 
+    :: Graph Unit
+    -> Graph Unit
+    -> Conversion 
+    -> Graph Unit
+connectGraphs gr1 gr2 conv = gr1'
+    where
+    Node fs1 u1 ts1 = gr1
+    Node fs2 u2 ts2 = gr2
+    gr2' = connectGraphs gr2 gr1 (inverse conv)
+    t1'  = edge gr2' conv
+    f1'  = edge gr2' (inverse conv)
+    gr1' = Node (f1':fs1) u1 (t1':ts1)
+
+-- connectGraphs :: Graph Unit -> Conversion -> Graph Unit -> Graph Unit
+-- connectGraphs gr1 conv gr2 = 
+--     ( Node (fromEdg:f1) u1 (toEdg:t1) )
+--     where (Node f1 u1 t1) = gr1
+--           (Node f2 u2 t2) = gr2
+--           iconv = inverse conv
+--           fromGr = connectGraphs gr2 iconv gr1
+--           fromEdg = edge fromGr conv
+--           toEdg = edge gr2 conv
 
 -- connectGraphs :: Graph Unit -> Conversion -> Graph Unit -> Graph Unit
 -- connectGraphs gr1@(Node f1 u1 t1) conv gr2@(Node f2 u2 t2) = 
