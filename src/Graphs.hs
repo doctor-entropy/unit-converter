@@ -64,11 +64,14 @@ connectGraphs
     -> Graph Unit
     -> Conversion 
     -> Graph Unit
-connectGraphs gr1 gr2 conv = gr1'
+connectGraphs
+    gr1@(Node fs1 u1 ts1)
+    gr2@(Node fs2 u2 ts2)
+    conv = 
+        gr1'
     where
-    Node fs1 u1 ts1 = gr1
-    Node fs2 u2 ts2 = gr2
-    gr2' = connectGraphs gr2 gr1 (inverse conv)
+    gr2' = connectGraphs gr2 gr1 iconv
+    iconv = inverse conv
     t1'  = edge gr2' conv
     f1'  = edge gr2' (inverse conv)
     gr1' = Node (f1':fs1) u1 (t1':ts1)
@@ -90,29 +93,48 @@ connectGraphs gr1 gr2 conv = gr1'
 --     where e1 = edge gr2 conv
 --           e2 = edge (connectGraphs gr2 (inverse conv) gr1) conv
 
-newGraph :: Relation -> Graph Unit
-newGraph (from, to, conv) =
-    Node [idEg] from [toEg]
-    where toEg  = edge toGr iconv
-          toGr = newGraph (to, from, iconv)
-          iconv = inverse conv
+-- newGraph :: Relation -> Graph Unit
+-- newGraph (from, to, conv) =
+--     Node [idEg] from [toEg]
+--     where toEg  = edge toGr iconv
+--           toGr = newGraph (to, from, iconv)
+--           iconv = inverse conv
 
-          idEg  = idEdge idGr
-          idGr = idGraph from
+--           idEg  = idEdge idGr
+--           idGr = idGraph from
+
+-- addNode :: Graph Unit -> Unit -> Conversion -> Graph Unit
+-- addNode prevGr u conv = Node [prevEdge] u [idEg]
+--     where idGr     = idGraph u
+--           idEg     = idEdge idGr
+--           prevEdge = edge prevGr (inverse conv)
+
+-- mkGraph :: [Relation] -> Graph Unit-> Graph Unit
+-- mkGraph []     _  = Empty
+-- mkGraph (e:es) gr = case findGraph from gr of
+--                          Nothing  -> newGraph e
+--                          Just gr' -> let gr'' = addNode gr' to conv
+--                                      in mkGraph es gr''
+--                     where (from, to, conv) = e
+
+newGraph :: Relation -> Graph Unit
+newGraph (f, t, conv) = connectGraphs idf idt conv
+                    where idt = mkIdGraph t
+                          idf = mkIdGraph f
 
 addNode :: Graph Unit -> Unit -> Conversion -> Graph Unit
-addNode prevGr u conv = Node [prevEdge] u [idEg]
-    where idGr     = idGraph u
-          idEg     = idEdge idGr
-          prevEdge = edge prevGr (inverse conv)
+addNode gr u conv = connectGraphs gr idg conv
+                    where idg = mkIdGraph u
 
-mkGraph :: [Relation] -> Graph Unit-> Graph Unit
-mkGraph []     _  = Empty
-mkGraph (e:es) gr = case findGraph from gr of
-                         Nothing  -> newGraph e
-                         Just gr' -> let gr'' = addNode gr' to conv
-                                     in mkGraph es gr''
-                    where (from, to, conv) = e
+mkGraph :: Relation -> Graph Unit -> Graph Unit
+mkGraph r@(f, t, conv) gr = 
+    case findGraph f gr of
+         Nothing  -> case findGraph t gr of
+                          Nothing  -> newGraph r
+                          Just gr' -> addNode gr' f iconv
+         Just gr' -> addNode gr' t conv
+
+    where iconv = inverse conv
 
 moveF :: Graph Unit -> Graph Unit
 moveF (Node _ u (n:ns)) = dest n
@@ -128,3 +150,14 @@ getEdgesF (Node fs n ts) = map (getNode . dest) ts
 
 getEdgesR :: Graph Unit -> [Unit]
 getEdgesR (Node fs n ts) = map (getNode . dest) fs
+
+getNonIdEdgeF :: Graph Unit -> [Unit]
+getNonIdEdgeF gr@(Node _ n ts) = filter ((/= n)) $ getEdgesF gr
+
+getNonIdEdgeR :: Graph Unit -> [Unit]
+getNonIdEdgeR gr@(Node fs n _) = filter ((/= n)) $ getEdgesR gr
+
+pPrintGraph :: Graph Unit -> String
+pPrintGraph gr@(Node fs n ts) = "Node " ++ fs' ++ " " ++ n ++ " " ++ ts'
+                        where fs' = show $ getNonIdEdgeF gr
+                              ts' = show $ getNonIdEdgeR gr
